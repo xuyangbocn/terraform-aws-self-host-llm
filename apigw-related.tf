@@ -1,12 +1,31 @@
-# API gateway, vpc link, lambda auth
+# API gateway, custom domain, vpc link, lambda auth
+# VPC Link
 resource "aws_apigatewayv2_vpc_link" "llm" {
   name               = local.apigw_config.name
-  security_group_ids = [aws_security_group.default_pub_subnet_sg.id, aws_security_group.default_pvt_subnet_sg.id]
+  security_group_ids = [aws_security_group.default_pub_subnet_sg.id, aws_security_group.llm_vpc_link_sg.id]
   subnet_ids         = concat(module.vpc.private_subnets, module.vpc.public_subnets)
 
   tags = local.tags
 }
 
+# SG for VPC Link (from API GW to ALB behind)
+# ref: https://repost.aws/questions/QUXW5Sb3dyS-i0wpMuyXJrPw/http-apigw-with-vpclink
+resource "aws_security_group" "llm_vpc_link_sg" {
+  name        = "llm-vpc-link-sg"
+  description = "Security group for vpc link for llm api gateway"
+  vpc_id      = module.vpc.vpc_id
+}
+
+resource "aws_vpc_security_group_egress_rule" "llm_vpc_link_egress_1" {
+  security_group_id = aws_security_group.llm_vpc_link_sg.id
+  description       = "Allow all tcp outbound"
+  from_port         = 0
+  to_port           = 65535
+  ip_protocol       = "tcp"
+  cidr_ipv4         = module.vpc.vpc_cidr_block
+}
+
+# API Gateway
 resource "aws_apigatewayv2_api" "llm_apigw" {
   name                         = local.apigw_config.name
   protocol_type                = local.apigw_config.protocol_type
@@ -24,7 +43,7 @@ resource "aws_apigatewayv2_integration" "root_post" {
   api_id             = aws_apigatewayv2_api.llm_apigw.id
   integration_type   = "HTTP_PROXY"
   integration_method = "POST"
-  integration_uri    = module.alb.listeners["http"].arn
+  integration_uri    = module.llm_alb.listeners["http"].arn
 
   connection_type = "VPC_LINK"
   connection_id   = aws_apigatewayv2_vpc_link.llm.id
@@ -40,7 +59,7 @@ resource "aws_apigatewayv2_integration" "root_get" {
   api_id             = aws_apigatewayv2_api.llm_apigw.id
   integration_type   = "HTTP_PROXY"
   integration_method = "GET"
-  integration_uri    = module.alb.listeners["http"].arn
+  integration_uri    = module.llm_alb.listeners["http"].arn
 
   connection_type = "VPC_LINK"
   connection_id   = aws_apigatewayv2_vpc_link.llm.id
@@ -54,6 +73,7 @@ resource "aws_apigatewayv2_stage" "llm_auto_deploy" {
   tags = local.tags
 }
 
+# Custom domain
 resource "aws_apigatewayv2_domain_name" "llm" {
   count = local.apigw_config.custom_domain_name["create"] ? 1 : 0
 
