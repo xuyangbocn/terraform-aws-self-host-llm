@@ -109,8 +109,10 @@ EOF
     internal = false
 
     listener_open_webui = {
-      port     = local.open_webui.port
-      protocol = "HTTP"
+      port            = var.open_webui_domain_ssl_cert_arn == "" ? 80 : 443
+      protocol        = var.open_webui_domain_ssl_cert_arn == "" ? "HTTP" : "HTTPS"
+      ssl_policy      = var.open_webui_domain_ssl_cert_arn == "" ? null : "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
+      certificate_arn = var.open_webui_domain_ssl_cert_arn == "" ? null : var.open_webui_domain_ssl_cert_arn
     }
 
     open_webui_target_group = {
@@ -119,6 +121,13 @@ EOF
       protocol         = "HTTP"
       protocol_version = "HTTP1"
       target_type      = "ip"
+    }
+
+    domain = {
+      create          = tobool(var.open_webui_domain != "" && var.open_webui_domain_route53_zone != "" && var.open_webui_domain_ssl_cert_arn != "")
+      domain_name     = var.open_webui_domain
+      certificate_arn = var.open_webui_domain_ssl_cert_arn
+      route53_zone_id = var.open_webui_domain_route53_zone
     }
   }
 
@@ -133,11 +142,11 @@ EOF
       auto_deploy = true
     }
 
-    custom_domain_name = {
-      create          = tobool(var.custom_domain_name != "" && var.custom_domain_name_route53_zone != "" && var.custom_domain_name_ssl_cert_arn != "")
-      domain_name     = var.custom_domain_name
-      certificate_arn = var.custom_domain_name_ssl_cert_arn
-      route53_zone_id = var.custom_domain_name_route53_zone
+    custom_domain = {
+      create          = tobool(var.api_gw_domain != "" && var.api_gw_domain_route53_zone != "" && var.api_gw_domain_ssl_cert_arn != "")
+      domain_name     = var.api_gw_domain
+      certificate_arn = var.api_gw_domain_ssl_cert_arn
+      route53_zone_id = var.api_gw_domain_route53_zone
     }
   }
 
@@ -153,4 +162,5 @@ EOF
       "arn:aws:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess",
     ]
   }
+
 }

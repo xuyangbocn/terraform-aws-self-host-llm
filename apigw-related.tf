@@ -75,23 +75,23 @@ resource "aws_apigatewayv2_stage" "llm_auto_deploy" {
 
 # Custom domain
 resource "aws_apigatewayv2_domain_name" "llm" {
-  count = local.apigw_config.custom_domain_name["create"] ? 1 : 0
+  count = local.apigw_config.custom_domain["create"] ? 1 : 0
 
-  domain_name = local.apigw_config.custom_domain_name["domain_name"]
+  domain_name = local.apigw_config.custom_domain["domain_name"]
 
   domain_name_configuration {
-    certificate_arn = local.apigw_config.custom_domain_name["certificate_arn"]
+    certificate_arn = local.apigw_config.custom_domain["certificate_arn"]
     endpoint_type   = "REGIONAL"
     security_policy = "TLS_1_2"
   }
 }
 
 resource "aws_route53_record" "llm" {
-  count = local.apigw_config.custom_domain_name["create"] ? 1 : 0
+  count = local.apigw_config.custom_domain["create"] ? 1 : 0
 
   name    = aws_apigatewayv2_domain_name.llm[0].domain_name
   type    = "A"
-  zone_id = local.apigw_config.custom_domain_name["route53_zone_id"]
+  zone_id = local.apigw_config.custom_domain["route53_zone_id"]
 
   alias {
     name                   = aws_apigatewayv2_domain_name.llm[0].domain_name_configuration[0].target_domain_name
@@ -101,7 +101,7 @@ resource "aws_route53_record" "llm" {
 }
 
 resource "aws_apigatewayv2_api_mapping" "llm" {
-  count = local.apigw_config.custom_domain_name["create"] ? 1 : 0
+  count = local.apigw_config.custom_domain["create"] ? 1 : 0
 
   api_id      = aws_apigatewayv2_api.llm_apigw.id
   domain_name = aws_apigatewayv2_domain_name.llm[0].id

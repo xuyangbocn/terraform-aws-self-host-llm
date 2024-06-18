@@ -16,8 +16,10 @@ module "open_webui_alb" {
   # Listener
   listeners = {
     http = {
-      port     = local.open_webui_alb_config.listener_open_webui["port"]
-      protocol = local.open_webui_alb_config.listener_open_webui["protocol"]
+      port            = local.open_webui_alb_config.listener_open_webui["port"]
+      protocol        = local.open_webui_alb_config.listener_open_webui["protocol"]
+      ssl_policy      = local.open_webui_alb_config.listener_open_webui["ssl_policy"]
+      certificate_arn = local.open_webui_alb_config.listener_open_webui["certificate_arn"]
 
       # default action
       forward = {
@@ -104,4 +106,19 @@ resource "aws_vpc_security_group_ingress_rule" "open_webui_alb_ingress_3" {
   to_port           = local.open_webui.port
   ip_protocol       = "tcp"
   cidr_ipv4         = "0.0.0.0/0"
+}
+
+# Route53 domain to expose ALB
+resource "aws_route53_record" "open_webui" {
+  count = local.open_webui_alb_config.domain.create ? 1 : 0
+
+  name    = local.open_webui_alb_config.domain["domain_name"]
+  type    = "A"
+  zone_id = local.open_webui_alb_config.domain["route53_zone_id"]
+
+  alias {
+    name                   = module.open_webui_alb.dns_name
+    zone_id                = module.open_webui_alb.zone_id
+    evaluate_target_health = false
+  }
 }
