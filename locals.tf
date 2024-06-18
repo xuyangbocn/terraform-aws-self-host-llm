@@ -6,13 +6,24 @@ locals {
 
   ollama_port = 11434
 
-  apse1_azs = { 0 : "ap-southeast-1a", 1 : "ap-southeast-1b", 2 : "ap-southeast-1c" }
+  open_webui = {
+    name      = "open-webui"
+    image_url = var.open_webui_image_url
+    arch      = "ARM64"
+    os        = "LINUX"
+    port      = 8080
+    data_dir  = "/app/backend/data"
+  }
+
+  azs = {
+    "ap-southeast-1" : { 0 : "ap-southeast-1a", 1 : "ap-southeast-1b", 2 : "ap-southeast-1c" }
+  }
 
   vpc_config = {
     # general
     name = "llm-vpc"
     cidr = "172.31.0.0/16"
-    azs  = slice(values(local.apse1_azs), 0, 3)
+    azs  = slice(values(local.azs[var.region]), 0, 3)
 
     # private subnets
     private_subnet_names = ["private-48-1a", "private-64-1b", "private-80-1c"]
@@ -42,7 +53,7 @@ locals {
     instance_type_arm = "g5g.xlarge"            # ARM chip
     dlami_id_arm      = "ami-0efbb02a15eb547ab" # ARM DLAMI,
     instance_type_x86 = "g4dn.xlarge"           # X86 Chip
-    dlami_id_x86      = "ami-067e51faa76313ade" # X86 DLAMI
+    dlami_id_x86      = "ami-07d5375b624cbd745" # X86 DLAMI: Deep Learning OSS Nvidia Driver AMI GPU PyTorch 2.3.0 (Amazon Linux 2) 20240611	
     volume_size       = 200
     llm_ec2_iamr_policies = [
       "arn:aws:iam::aws:policy/AmazonSSMFullAccess",
@@ -60,34 +71,63 @@ sudo systemctl start dlami-cloudwatch-agent@partial
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Expose Ollama endpoints
-mkdir -p /etc/systemd/system/ollama.service.d
+mkdir -p /c
 {
   echo '[Service]';
   echo 'Environment="OLLAMA_HOST=0.0.0.0:${local.ollama_port}"'
 } | tee /etc/systemd/system/ollama.service.d/override.conf
 
 systemctl daemon-reload
-systemctl restart ollama
+systemctl enable ollama
+systemctl start ollama
 EOF
 
   }
 
-  alb_config = {
+  llm_alb_config = {
     name     = "llm-alb"
     type     = "application"
     internal = true
 
-    listener = {
+    listener_llm = {
       port     = 80
       protocol = "HTTP"
     }
 
     llm_target_group = {
-      name_prefix      = "tg-llm"
+      name_prefix      = "llm-"
       port             = local.ollama_port
       protocol         = "HTTP"
       protocol_version = "HTTP1"
       target_type      = "instance"
+    }
+  }
+
+  open_webui_alb_config = {
+    name     = "open-webui-alb"
+    type     = "application"
+    internal = false
+
+    listener_open_webui = {
+      port            = var.open_webui_domain_ssl_cert_arn == "" ? 80 : 443
+      protocol        = var.open_webui_domain_ssl_cert_arn == "" ? "HTTP" : "HTTPS"
+      ssl_policy      = var.open_webui_domain_ssl_cert_arn == "" ? null : "ELBSecurityPolicy-TLS13-1-2-Res-2021-06"
+      certificate_arn = var.open_webui_domain_ssl_cert_arn == "" ? null : var.open_webui_domain_ssl_cert_arn
+    }
+
+    open_webui_target_group = {
+      name_prefix      = "ow-"
+      port             = local.open_webui.port
+      protocol         = "HTTP"
+      protocol_version = "HTTP1"
+      target_type      = "ip"
+    }
+
+    domain = {
+      create          = tobool(var.open_webui_domain != "" && var.open_webui_domain_route53_zone != "" && var.open_webui_domain_ssl_cert_arn != "")
+      domain_name     = var.open_webui_domain
+      certificate_arn = var.open_webui_domain_ssl_cert_arn
+      route53_zone_id = var.open_webui_domain_route53_zone
     }
   }
 
@@ -102,11 +142,25 @@ EOF
       auto_deploy = true
     }
 
-    custom_domain_name = {
-      create          = tobool(var.custom_domain_name != "" && var.custom_domain_name_route53_zone != "" && var.custom_domain_name_ssl_cert_arn != "")
-      domain_name     = var.custom_domain_name
-      certificate_arn = var.custom_domain_name_ssl_cert_arn
-      route53_zone_id = var.custom_domain_name_route53_zone
+    custom_domain = {
+      create          = tobool(var.api_gw_domain != "" && var.api_gw_domain_route53_zone != "" && var.api_gw_domain_ssl_cert_arn != "")
+      domain_name     = var.api_gw_domain
+      certificate_arn = var.api_gw_domain_ssl_cert_arn
+      route53_zone_id = var.api_gw_domain_route53_zone
     }
   }
+
+  ecs_config = {
+    open_webui_service = {
+      desired_count = 3
+      cpu           = 1024
+      memory        = 2048
+    }
+    open_webui_ecs_iamr_policies = [
+      "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+      "arn:aws:iam::aws:policy/AmazonElasticFileSystemClientReadWriteAccess",
+      "arn:aws:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess",
+    ]
+  }
+
 }

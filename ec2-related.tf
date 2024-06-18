@@ -31,12 +31,12 @@ data "aws_iam_policy_document" "llm_ec2_iamr_assume" {
 # EC2 instance for LLM
 resource "aws_instance" "llm_arm" {
   ami                         = local.ec2_config.dlami_id_arm
-  availability_zone           = local.apse1_azs[0]
+  availability_zone           = local.azs[var.region][0]
   subnet_id                   = module.vpc.private_subnets[0]
   instance_type               = local.ec2_config.instance_type_arm
   iam_instance_profile        = aws_iam_instance_profile.llm_ec2_iam_profile.id
   associate_public_ip_address = false
-  vpc_security_group_ids      = [aws_security_group.default_pvt_subnet_sg.id]
+  vpc_security_group_ids      = [aws_security_group.llm_ec2_sg.id]
 
   user_data = local.ec2_config.user_data
 
@@ -59,3 +59,55 @@ resource "aws_instance" "llm_arm" {
   )
 }
 
+# SG for LLM EC2
+resource "aws_security_group" "llm_ec2_sg" {
+  name        = "llm-ec2-sg"
+  description = "Security group for llm ec2"
+  vpc_id      = module.vpc.vpc_id
+}
+
+resource "aws_vpc_security_group_egress_rule" "llm_ec2_egress_1" {
+  security_group_id = aws_security_group.llm_ec2_sg.id
+  description       = "Allow all tcp outbound"
+  from_port         = 0
+  to_port           = 65535
+  ip_protocol       = "tcp"
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_egress_rule" "llm_ec2_egress_2" {
+  security_group_id = aws_security_group.llm_ec2_sg.id
+  description       = "Traffic to NFS port to EFS within VPC"
+  from_port         = 2049
+  to_port           = 2049
+  ip_protocol       = "tcp"
+  cidr_ipv4         = module.vpc.vpc_cidr_block
+}
+
+resource "aws_vpc_security_group_ingress_rule" "llm_ec2_ingress_1" {
+  security_group_id = aws_security_group.llm_ec2_sg.id
+  description       = "Traffic over TLS from VPC"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  cidr_ipv4         = module.vpc.vpc_cidr_block
+}
+
+resource "aws_vpc_security_group_ingress_rule" "llm_ec2_ingress_2" {
+  security_group_id = aws_security_group.llm_ec2_sg.id
+  description       = "Traffic over HTTP from VPC"
+  from_port         = 80
+  to_port           = 80
+  ip_protocol       = "tcp"
+  cidr_ipv4         = module.vpc.vpc_cidr_block
+}
+
+resource "aws_vpc_security_group_ingress_rule" "llm_ec2_ingress_3" {
+  security_group_id = aws_security_group.llm_ec2_sg.id
+  description       = "Traffic over Ollama Port from VPC"
+  from_port         = 11434
+  to_port           = 11434
+  ip_protocol       = "tcp"
+  cidr_ipv4         = module.vpc.vpc_cidr_block
+
+}
