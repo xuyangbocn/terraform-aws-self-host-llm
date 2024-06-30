@@ -2,7 +2,7 @@
 
 # ECS Cluster
 resource "aws_ecs_cluster" "open_webui" {
-  name = "open-webui"
+  name = "${var.prefix}-ecs"
   configuration {
     execute_command_configuration {
       logging = "DEFAULT"
@@ -20,7 +20,7 @@ resource "aws_ecs_cluster" "open_webui" {
 }
 
 resource "aws_service_discovery_http_namespace" "open_webui" {
-  name        = "open-webui"
+  name        = var.prefix
   description = "open-webui"
 }
 
@@ -31,10 +31,8 @@ resource "aws_ecs_cluster_capacity_providers" "open_webui" {
 
 # ECS Task execuction role
 resource "aws_iam_role" "open_webui_iamr" {
-  name               = "${local.open_webui.name}-iamr"
+  name               = "${var.prefix}-iamr"
   assume_role_policy = data.aws_iam_policy_document.open_webui_ecs_iamr_assume.json
-
-  tags = local.tags
 }
 
 data "aws_iam_policy_document" "open_webui_ecs_iamr_assume" {
@@ -49,16 +47,16 @@ data "aws_iam_policy_document" "open_webui_ecs_iamr_assume" {
 }
 
 resource "aws_iam_role_policy_attachment" "open_webui_ecs_iam_policy" {
-  for_each   = toset(local.ecs_config.open_webui_ecs_iamr_policies)
+  for_each   = toset(local.ecs_iamr_policies)
   role       = aws_iam_role.open_webui_iamr.name
   policy_arn = each.value
 }
 
 # Fargate task def
 resource "aws_ecs_task_definition" "open_webui" {
-  family             = local.open_webui.name
-  cpu                = local.ecs_config.open_webui_service.cpu
-  memory             = local.ecs_config.open_webui_service.memory
+  family             = "${var.prefix}-task-def"
+  cpu                = var.open_webui_task_cpu
+  memory             = var.open_webui_task_mem
   execution_role_arn = aws_iam_role.open_webui_iamr.arn
   # task_role_arn      = "TBC"
   network_mode = "awsvpc"
@@ -70,14 +68,14 @@ resource "aws_ecs_task_definition" "open_webui" {
 
   container_definitions = jsonencode([
     {
-      "name" : "ctn-${local.open_webui.name}",
-      "image" : local.open_webui.image_url,
+      "name" : "${var.prefix}-ctn",
+      "image" : var.open_webui_image_url,
       "cpu" : 0,
       "portMappings" : [
         {
-          "name" : "ctn-${local.open_webui.name}-${local.open_webui.port}-tcp",
-          "containerPort" : local.open_webui.port,
-          "hostPort" : local.open_webui.port,
+          "name" : "${var.prefix}-ctn-${var.open_webui_port}-tcp",
+          "containerPort" : var.open_webui_port,
+          "hostPort" : var.open_webui_port,
           "protocol" : "tcp",
           "appProtocol" : "http"
         }
@@ -86,17 +84,17 @@ resource "aws_ecs_task_definition" "open_webui" {
       "environment" : [
         {
           "name" : "OPEN_WEBUI_PORT",
-          "value" : tostring(local.open_webui.port)
+          "value" : tostring(var.open_webui_port)
         },
         {
           "name" : "OLLAMA_BASE_URL",
-          "value" : "http://${aws_instance.llm_arm.private_ip}:${local.ollama_port}"
+          "value" : var.llm_service_endpoint
         }
       ],
       "environmentFiles" : [],
       "mountPoints" : [
         {
-          "sourceVolume" : "vol-${local.open_webui.name}",
+          "sourceVolume" : "${var.prefix}-vol",
           "containerPath" : local.open_webui.data_dir,
           "readOnly" : false
         }
@@ -106,7 +104,7 @@ resource "aws_ecs_task_definition" "open_webui" {
       "logConfiguration" : {
         "logDriver" : "awslogs",
         "options" : {
-          "awslogs-group" : "/ecs/${local.open_webui.name}",
+          "awslogs-group" : "/ecs/${var.prefix}",
           "awslogs-region" : var.region,
           "awslogs-stream-prefix" : "ecs"
         },
@@ -129,7 +127,7 @@ resource "aws_ecs_task_definition" "open_webui" {
       "logConfiguration" : {
         "logDriver" : "awslogs",
         "options" : {
-          "awslogs-group" : "/ecs/ecs-aws-otel-sidecar-collector",
+          "awslogs-group" : "/ecs/ecs-${var.prefix}-aws-otel-sidecar-collector",
           "awslogs-region" : var.region,
           "awslogs-stream-prefix" : "ecs"
         },
@@ -140,7 +138,7 @@ resource "aws_ecs_task_definition" "open_webui" {
   ])
 
   volume {
-    name = "vol-${local.open_webui.name}"
+    name = "${var.prefix}-vol"
     efs_volume_configuration {
       file_system_id = aws_efs_file_system.open_webui.id
       root_directory = "/"
@@ -150,23 +148,23 @@ resource "aws_ecs_task_definition" "open_webui" {
 
 # CW Log group for ECS task
 resource "aws_cloudwatch_log_group" "open_webui" {
-  name              = "/ecs/${local.open_webui.name}"
+  name              = "/ecs/${var.prefix}"
   retention_in_days = 365
   skip_destroy      = false
 }
 
 resource "aws_cloudwatch_log_group" "open_webui_otel_sidecar" {
-  name              = "/ecs/ecs-${local.open_webui.name}-aws-otel-sidecar-collector"
+  name              = "/ecs/ecs-${var.prefix}-aws-otel-sidecar-collector"
   retention_in_days = 365
   skip_destroy      = false
 }
 
 # ECS Service
 resource "aws_ecs_service" "open_webui" {
-  name                               = "svc-${local.open_webui.name}"
+  name                               = "${var.prefix}-svc"
   cluster                            = aws_ecs_cluster.open_webui.id
   task_definition                    = aws_ecs_task_definition.open_webui.arn
-  desired_count                      = local.ecs_config.open_webui_service.desired_count
+  desired_count                      = var.open_webui_task_count
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"
   deployment_maximum_percent         = 200
@@ -184,13 +182,13 @@ resource "aws_ecs_service" "open_webui" {
   }
 
   load_balancer {
-    target_group_arn = module.open_webui_alb.target_groups["tg-ow"].arn
-    container_name   = "ctn-${local.open_webui.name}"
-    container_port   = local.open_webui.port
+    target_group_arn = aws_lb_target_group.ow_http.arn
+    container_name   = "${var.prefix}-ctn"
+    container_port   = var.open_webui_port
   }
 
   network_configuration {
-    subnets          = module.vpc.private_subnets
+    subnets          = var.ecs_subnet_ids
     security_groups  = [aws_security_group.open_webui_sg.id]
     assign_public_ip = false
   }
@@ -202,9 +200,9 @@ resource "aws_ecs_service" "open_webui" {
 
 # SG for ECS Service Tasks for Open WebUI
 resource "aws_security_group" "open_webui_sg" {
-  name        = "open-webui-sg"
+  name        = "${var.prefix}-ecs-sg"
   description = "Security group for open webui ecs service"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = var.vpc_id
 }
 
 resource "aws_vpc_security_group_egress_rule" "open_webui_egress_1" {
@@ -222,15 +220,14 @@ resource "aws_vpc_security_group_egress_rule" "open_webui_egress_2" {
   from_port         = 2049
   to_port           = 2049
   ip_protocol       = "tcp"
-  cidr_ipv4         = module.vpc.vpc_cidr_block
+  cidr_ipv4         = var.vpc_cidr_block
 }
 
 resource "aws_vpc_security_group_ingress_rule" "open_webui_ingress_1" {
   security_group_id = aws_security_group.open_webui_sg.id
   description       = "Traffic over port (for open webui) from VPC"
-  from_port         = local.open_webui.port
-  to_port           = local.open_webui.port
+  from_port         = var.open_webui_port
+  to_port           = var.open_webui_port
   ip_protocol       = "tcp"
-  cidr_ipv4         = module.vpc.vpc_cidr_block
-
+  cidr_ipv4         = var.vpc_cidr_block
 }

@@ -4,9 +4,9 @@ module "vpc" {
   version = "5.8.1"
 
   # general
-  name                    = local.vpc_config.name
-  cidr                    = local.vpc_config.cidr
-  azs                     = local.vpc_config.azs
+  name                    = var.vpc_name
+  cidr                    = var.vpc_cidr
+  azs                     = var.azs
   enable_dns_hostnames    = true
   create_egress_only_igw  = false
   create_igw              = true
@@ -16,16 +16,16 @@ module "vpc" {
   map_public_ip_on_launch = false
 
   # private subnets
-  private_subnets      = local.vpc_config.private_subnets
-  private_subnet_names = local.vpc_config.private_subnet_names
+  private_subnets      = var.vpc_private_subnets_cidrs
+  private_subnet_names = var.vpc_private_subnets_names
 
-  # private subnets
-  public_subnets      = local.vpc_config.public_subnets
-  public_subnet_names = local.vpc_config.public_subnet_names
+  # public subnets
+  public_subnets      = var.vpc_public_subnets_cidrs
+  public_subnet_names = var.vpc_public_subnets_names
 
   # default nacl
   manage_default_network_acl = true
-  default_network_acl_name   = local.vpc_config.default_network_acl_name
+  default_network_acl_name   = "${var.vpc_name}-default-nacl"
   default_network_acl_ingress = [
     {
       rule_no    = 100
@@ -143,13 +143,13 @@ module "vpc" {
 
   # default security group
   manage_default_security_group  = true
-  default_security_group_name    = local.vpc_config.default_security_group_name
+  default_security_group_name    = "${var.vpc_name}-default-sg"
   default_security_group_egress  = []
   default_security_group_ingress = []
 
   # default route table
   manage_default_route_table = true
-  default_route_table_name   = local.vpc_config.default_route_table_name
+  default_route_table_name   = "${var.vpc_name}-default-rt"
 
   # dhcp options
   enable_dhcp_options = true
@@ -158,8 +158,8 @@ module "vpc" {
   enable_flow_log                                 = true
   create_flow_log_cloudwatch_log_group            = true
   create_flow_log_cloudwatch_iam_role             = true
-  flow_log_destination_type                       = local.vpc_config.flow_log_destination_type
-  flow_log_cloudwatch_log_group_retention_in_days = local.vpc_config.flow_log_cloudwatch_log_group_retention_in_days
+  flow_log_destination_type                       = "cloud-watch-logs"
+  flow_log_cloudwatch_log_group_retention_in_days = 365
 
   # Tags
   tags = local.tags
@@ -253,16 +253,6 @@ resource "aws_vpc_security_group_ingress_rule" "default_pvt_subnet_ingress_2" {
   to_port           = 80
   ip_protocol       = "tcp"
   cidr_ipv4         = module.vpc.vpc_cidr_block
-}
-
-resource "aws_vpc_security_group_ingress_rule" "default_pvt_subnet_ingress_3" {
-  security_group_id = aws_security_group.default_pvt_subnet_sg.id
-  description       = "Traffic over Ollama Port from VPC"
-  from_port         = 11434
-  to_port           = 11434
-  ip_protocol       = "tcp"
-  cidr_ipv4         = module.vpc.vpc_cidr_block
-
 }
 
 
