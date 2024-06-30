@@ -9,23 +9,24 @@ resource "aws_efs_file_system" "open_webui" {
   }
 
   tags = {
-    Name = "open-webui"
+    "Name" : "${var.prefix}-efs"
   }
 }
 
 # Mount target: for workloads in pvt subnets
 resource "aws_efs_mount_target" "efs_to_pvt_subnets" {
-  for_each        = toset(module.vpc.private_subnets)
+  count = length(var.ecs_subnet_ids)
+
   file_system_id  = aws_efs_file_system.open_webui.id
   security_groups = [aws_security_group.efs_sg.id]
-  subnet_id       = each.value
+  subnet_id       = var.ecs_subnet_ids[count.index]
 }
 
 # SG for EFS
 resource "aws_security_group" "efs_sg" {
-  name        = "efs-sg"
+  name        = "${var.prefix}-efs-sg"
   description = "Security group for EFS"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id      = var.vpc_id
 }
 
 resource "aws_vpc_security_group_egress_rule" "efs_egress_1" {
@@ -34,7 +35,7 @@ resource "aws_vpc_security_group_egress_rule" "efs_egress_1" {
   from_port         = 0
   to_port           = 65535
   ip_protocol       = "tcp"
-  cidr_ipv4         = module.vpc.vpc_cidr_block
+  cidr_ipv4         = var.vpc_cidr_block
 }
 
 resource "aws_vpc_security_group_ingress_rule" "efs_ingress_1" {
@@ -43,5 +44,5 @@ resource "aws_vpc_security_group_ingress_rule" "efs_ingress_1" {
   from_port         = 2049
   to_port           = 2049
   ip_protocol       = "tcp"
-  cidr_ipv4         = module.vpc.vpc_cidr_block
+  cidr_ipv4         = var.vpc_cidr_block
 }

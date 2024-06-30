@@ -1,85 +1,94 @@
-# Setup of an Ollama Deployment
+# Terraform to Setup an Ollama + Open WebUI Deployment
 
-This TF repo setup a ready to use Ollama + Open WebUI deployment, except for downloading of models which depends on actual usage.
+This TF repo setup a ready-to-use **Ollama** service, together with its front end **Open WebUI** service.
+
+These two are separate child TF modules, which can be used independently. Please refer to below for more details.
+
+1. [TF for ollama-service](./modules/ollama-service-multi-servers/README.md): deploys Ollama via EC2s and exposes over API Gateway
+
+
+2. [TF for open-webui-service](./modules/open-webui-service/README.md): deploys Open WebUI via ECS Fargate
+
+
+For usage and features of **Ollama** and **Open WebUI**, please refer to the official documentation below
+
+1. [Ollama Documentation](https://github.com/ollama/ollama/blob/main/docs/api.md) for details about its API usage
+
+2. [Open WebUI documentation](https://github.com/open-webui/open-webui/blob/main/README.md) for details about its usage
+
+## Architecture
+
+<img src="./architecture.png" alt="architecture" width="450"/>
+
+## How to Use
+
+```terraform
+module "ollama_and_open_webui" {
+    region                    = "ap-southeast-1"
+    azs                       = ["ap-southeast-1a", "ap-southeast-1b"]
+    vpc_private_subnets_cidrs = ["172.31.48.0/20", "172.31.64.0/20"]
+    vpc_private_subnets_names = ["private-48-1a", "private-64-1b"]
+    vpc_public_subnets_cidrs  = ["172.31.0.0/20", "172.31.16.0/20"]
+    vpc_public_subnets_names  = ["public-0-1a", "public-16-1b"]
+
+    llm_ec2_configs = [
+        {
+            llm_model     = "llama3:8b"
+            instance_type = "g5g.xlarge"
+            ami_id        = ""
+            ebs_volume_gb = 200
+            app_port      = 11434
+        },
+        {
+            llm_model     = "qwen2:7b"
+            instance_type = "g5g.xlarge"
+            ami_id        = ""
+            ebs_volume_gb = 200
+            app_port      = 11434
+        },
+    ]
+
+    create_api_gw                = true
+    disable_execute_api_endpoint = true
+    api_gw_domain                = "xx.xxx.com"
+    api_gw_domain_route53_zone   = "xxxxx"
+    api_gw_domain_ssl_cert_arn   = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"
+
+    open_webui_task_cpu            = 1024
+    open_webui_task_mem            = 2048
+    open_webui_task_count          = 2
+    open_webui_port                = 8080
+    open_webui_image_url           = "xxxx.dkr.ecr.ap-southeast-1.amazonaws.com/open-webui:v0.3.4"
+    open_webui_domain              = "yy.yyyy.com"
+    open_webui_domain_route53_zone = "xxxxxx"
+    open_webui_domain_ssl_cert_arn = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"
+}
+```
+
+### Notes
+
+1. For Ollama, user needs to `ollama pull <model>:<tag>` in respective EC2 that host Ollama and LLMs
+   - In the main server, please pull all the models
+2. For Open WebUI portal, after setup, please Sign up on the portal and continue use from there
 
 ## Infra setup includes
 
 - A VPC
 
-  - in ap-southeast-1 region
-  - three private subnets
-  - three public subnets
-  - NAT GW
-  - VPC endpoints
-  - necessary route tables, nacl, default sg
+  - private subnets & public subnets
+  - NAT Gateway and Internet GW
+  - necessary VPC endpoints, route tables, nacl, default sg
 
-- An EC2 (for Ollama)
+- Ollama running on a list of EC2
 
-  - arm/x86 instance with GPU (`g5g.xlarge`, or `g4dn.xlarge`) and the corresponding Deep learning AMI
-  - hosted in one of the private subnets
-  - Ollama installed and exposed over 0.0.0.0:11434
-  - GPU monitoring setup to CW custom metrics
-  - necessary IAM roles, policy and sg
+- Open WebUI running on an ECS Cluster and Service
 
-- An Internal facing ALB (for Ollama)
+## Output
 
-  - hosted in private subnets across zone a,b,c
-  - listener for port 80
-  - target group for port 11434 and registered the llm EC2
+- URL to access Ollama service
 
-- An API GW (for Ollama)
+  - `llm_service_endpoint`
 
-  - with vpc links to the VPC hosting llm EC2
-  - forward POST and GET api to the ALB at port 80
-  - including an auto-deploy stage
-  - including a pass-thru lambda authenticator, logic can be customized
-  - exposing the default api endpoint
-  - (Optional) Custom domain name setup to replace the API Gw default endpoint
+- URL to access Open WebUI
 
-- An ECS Cluster and Service (for Open WebUi)
-
-  - an ECS Fargate Cluster in private subnet
-  - a service and task def compatible with Open WebUI docker deployment
-  - with an EFS as the volume shared by containers
-  - necessary IAM role, policy and sg
-
-- An Internet facing ALB (for Open WebUi)
-
-  - hosted in public subnets across zone a,b,c
-  - listener and rules for port 80 or 443
-  - target group for port 8080 toward the ECS fargate service for Open WebUI
-  - (Optional) DNS record exposing ALB over HTTPS, if SSL cert supplied
-
-## How to run setup
-
-- Double check the configs in `local.tf` for VPC, EC2, ALB, API GW, ECS, EFS in case need to adjust anything
-- Run terraform init, plan, apply, destroy accordingly
-- The Ollama API (GET, POST) is exposed via the API GW default endpoints url or custom domain name
-- The Open WebUI is exposed via the Internet ALB or domain name supplied
-
-## How to use Ollama
-
-- Access EC2 using ssm, run `ollama pull <model-name:tag>` to pull the required models. [reference](https://ollama.com/library)
-- Ollama API documentation can be found [here](https://github.com/ollama/ollama/blob/main/docs/api.md)
-- Feel free to make other use cases of Ollama deployment
-
-## How to use Open WebUI
-
-- It's a comprehensive web UI for using LLM, backed up Ollama server (and the models inside the server).
-- Sign up, choose a model, and start thread
-- Open WebUI documentation can be found [here](https://github.com/open-webui/open-webui)
-- Feel free to explore other features of Open WebUI, not limited to chat
-
-## Server Capacity
-
-Ollama server is on `g5g` and `g4dn` xlarge EC2. It has a 12GB VRAM GPU, it can support most models that has a size<=13b and quantized at 4q or below.
-
-Open WebUI is deployed on pure CPU fargate container workload. Any native inference features should configure to use external models for better performance.
-
-## Future enhancement or exploration
-
-1. How to host a larger model in singapore? e.g. 70b. Use instance with multiple GPU? Use other CSP?
-2. How to make LLM server more scalable for high number of user requests?
-3. Deploy using Vllm VS Ollama
-4. To better manage load and performance, shall we deploy only one model per EC2 and forward API to respective EC2 using API GW?
-5. How to better manage downloaded model, always download fresh from internet can be slow and expensive?
+  - `open_webui_endpoint`
