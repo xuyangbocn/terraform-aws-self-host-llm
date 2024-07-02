@@ -6,9 +6,7 @@ These two are separate child TF modules, which can be used independently. Please
 
 1. [TF for ollama-service](./modules/ollama-service-multi-servers/README.md): deploys Ollama via EC2s and exposes over API Gateway
 
-
 2. [TF for open-webui-service](./modules/open-webui-service/README.md): deploys Open WebUI via ECS Fargate
-
 
 For usage and features of **Ollama** and **Open WebUI**, please refer to the official documentation below
 
@@ -67,8 +65,7 @@ module "ollama_and_open_webui" {
 
 ### Notes
 
-1. For Ollama, user needs to `ollama pull <model>:<tag>` in respective EC2 that host Ollama and LLMs
-   - In the main server, please pull all the models
+1. For Ollama, after TF apply finish, please check all AWS SSM Run Command `xxx-pull-models` run to completion with success.
 2. For Open WebUI portal, after setup, please Sign up on the portal and continue use from there
 
 ## Infra setup includes

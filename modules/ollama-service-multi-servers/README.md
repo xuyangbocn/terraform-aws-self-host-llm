@@ -45,9 +45,7 @@ module "llm_service" {
 
 ### Notes
 
-1. User still needs to `ollama pull <model>:<tag>` in respective EC2
-   - In the main server, please pull all the models
-   - \*this is something to be enhanced
+1. After TF apply finish, please check all AWS SSM Run Command `xxx-pull-models` run to completion with success.
 2. Please refer to [Ollama Documentation](https://github.com/ollama/ollama/blob/main/docs/api.md) for details about its API usage
 3. EC2 VRAM Spec quick reference:
    - g4dn.xlarge, x86, VRAM=1\*16GB

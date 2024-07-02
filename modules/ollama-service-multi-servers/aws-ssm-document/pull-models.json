@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Ollama pull models.",
+  "parameters": {
+    "Models": {
+      "type": "String",
+      "description": "List of models to pull (comma sep)."
+    },
+    "TimeoutSeconds": {
+      "type": "String",
+      "description": "(Optional) The time in seconds for a command to be completed before it is considered to have failed.",
+      "default": "900"
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "runShellScript",
+      "inputs": {
+        "timeoutSeconds": "{{ TimeoutSeconds }}",
+        "runCommand": [
+          "#!/bin/bash",
+          "sleep 1m",
+          "IFS=',' read -ra ms <<< \"{{Models}}\"",
+          "for m in \"${ms[@]}\"; do",
+          "   echo \"pull model $m \"",
+          "   ollama pull $m",
+          "done"
+        ]
+      }
+    }
+  ]
+}
