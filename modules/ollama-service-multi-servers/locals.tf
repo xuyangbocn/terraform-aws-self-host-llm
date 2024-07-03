@@ -55,6 +55,7 @@ locals {
       user_data_replace_on_change = false
 
       use_as_main_ec2        = i == 0 ? true : false
+      pull_models            = i == 0 ? [for each in var.llm_ec2_configs : each.llm_model] : [v.llm_model]
       listener_rule_priority = i + 1
     }
   }

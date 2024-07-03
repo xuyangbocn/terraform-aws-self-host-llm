@@ -116,3 +116,24 @@ resource "aws_instance" "llm" {
     Name   = each.value.use_as_main_ec2 ? "${var.prefix}-main-${each.value.llm_model}" : "${var.prefix}-${each.value.llm_model}"
   }
 }
+
+resource "aws_ssm_document" "pull_models" {
+  name          = "${var.prefix}-pull-models"
+  document_type = "Command"
+
+  content = file("${path.module}/aws-ssm-document/pull-models.json")
+}
+
+resource "aws_ssm_association" "pull_model" {
+  for_each = local.ec2_configs
+
+  name = aws_ssm_document.pull_models.name
+  parameters = {
+    "Models" = join(",", each.value.pull_models)
+  }
+
+  targets {
+    key    = "InstanceIds"
+    values = [aws_instance.llm[each.key].id]
+  }
+}

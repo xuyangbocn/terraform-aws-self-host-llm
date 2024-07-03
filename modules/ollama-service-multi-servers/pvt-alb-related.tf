@@ -69,7 +69,7 @@ resource "aws_lb_listener" "llm_http" {
 
 # Listener rule
 resource "aws_lb_listener_rule" "llm_http" {
-  for_each = tomap(local.ec2_configs)
+  for_each = local.ec2_configs
 
   listener_arn = aws_lb_listener.llm_http.arn
   priority     = each.value.listener_rule_priority
