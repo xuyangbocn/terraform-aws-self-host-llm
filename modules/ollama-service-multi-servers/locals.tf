@@ -1,10 +1,8 @@
 locals {
-  dlami_id_arm = "ami-0efbb02a15eb547ab" # ARM DLAMI,
-  dlami_id_x86 = "ami-07d5375b624cbd745" # X86 DLAMI: Deep Learning OSS Nvidia Driver AMI GPU PyTorch 2.3.0 (Amazon Linux 2) 20240611	
-
   ami_id = {
-    "g5g" : local.dlami_id_arm,
-    "g4dn" : local.dlami_id_x86,
+    "g5g" : data.aws_ami.dlami_arm.id,
+    "g4dn" : data.aws_ami.dlami_x86.id,
+    "g5" : data.aws_ami.dlami_x86.id,
   }
 
   ec2_iamr_policies = [
@@ -30,6 +28,7 @@ locals {
       echo 'Environment="OLLAMA_HOST=0.0.0.0:%s"'
       echo 'Environment="OLLAMA_MODELS=/usr/share/ollama/.ollama/models"'
       echo 'Environment="OLLAMA_KEEP_ALIVE=%s"'
+      echo 'Environment="OLLAMA_FLASH_ATTENTION=1"'
     } | tee /etc/systemd/system/ollama.service.d/override.conf
 
     # Enable ollama
