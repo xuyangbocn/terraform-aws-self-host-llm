@@ -78,7 +78,7 @@ variable "create_api_gw" {
 }
 
 variable "api_gw_disable_execute_endpoint" {
-  description = "API Gateway not to expose its own execute endpoint"
+  description = "disable_execute_api_endpoint of API Gw, may be true if custom domain name is setup"
   type        = bool
   default     = false
 }
@@ -99,12 +99,6 @@ variable "api_gw_domain_ssl_cert_arn" {
   description = "The arn of the acm cert for API Gw custom domain name setup"
   type        = string
   default     = ""
-}
-
-variable "disable_execute_api_endpoint" {
-  description = "disable_execute_api_endpoint of API Gw, may be true if custom domain name is setup"
-  type        = bool
-  default     = false
 }
 
 # Open WebUI related

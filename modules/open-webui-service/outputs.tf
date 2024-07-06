@@ -26,5 +26,5 @@ output "alb" {
 
 output "service_endpoint" {
   description = "Endpoint to consumer Ollama service"
-  value       = local.alb_configs.create_domain ? "https://${var.open_webui_domain}" : "https://${aws_lb.ow.dns_name}"
+  value       = local.alb_configs.create_domain ? "https://${var.open_webui_domain}" : "http://${aws_lb.ow.dns_name}"
 }
