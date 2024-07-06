@@ -56,7 +56,7 @@ module "ollama_and_open_webui" {
     open_webui_task_mem            = 2048
     open_webui_task_count          = 2
     open_webui_port                = 8080
-    open_webui_image_url           = "xxxx.dkr.ecr.ap-southeast-1.amazonaws.com/open-webui:v0.3.4"
+    open_webui_image_url           = "xuyangbo/open-webui:v0.3.7"
     open_webui_domain              = "yy.yyyy.com"
     open_webui_domain_route53_zone = "xxxxxx"
     open_webui_domain_ssl_cert_arn = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"

@@ -24,7 +24,7 @@ module "open_webui_service" {
   open_webui_task_mem            = 2048
   open_webui_task_count          = 3
   open_webui_port                = 8080
-  open_webui_image_url           = "xxx.dkr.ecr.ap-southeast-1.amazonaws.com/open-webui:v0.3.4"
+  open_webui_image_url           = "xuyangbo/open-webui:v0.3.7"
   open_webui_domain              = "yy.yyy.com"
   open_webui_domain_route53_zone = "xxxx"
   open_webui_domain_ssl_cert_arn = "arn:aws:acm:ap-southeast-1:xxx:certificate/xxxxx"
@@ -56,7 +56,7 @@ module "open_webui_service" {
 ## Pre-requisites
 
 - A VPC with public, private subnets
-- Open WebUI Docker built and pushed to ECR
+- Open WebUI Docker image (or use my docker image on dockerhub `xuyangbo/open-webui`)
 - An Ollama service endpoint for Open WebUI to connect to
 - SSL cert and Route53 host zone if need to expose Open WebUI portal
 
