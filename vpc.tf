@@ -196,23 +196,23 @@ module "llm_vpc_aws_vpce" {
 
   endpoints = {
     s3 = {
-      service_name    = "com.amazonaws.ap-southeast-1.s3"
+      service_name    = "com.amazonaws.${var.region}.s3"
       service_type    = "Gateway"
       route_table_ids = concat(module.vpc.private_route_table_ids, module.vpc.public_route_table_ids)
       tags            = { Name = "vpce-llm-s3" }
     },
     # ssm = {
-    #   service_name        = "com.amazonaws.ap-southeast-1.ssm"
+    #   service_name        = "com.amazonaws.${var.region}.ssm"
     #   private_dns_enabled = true
     #   tags                = { Name = "vpce-llm-ssm" }
     # },
     # ec2messages = {
-    #   service_name        = "com.amazonaws.ap-southeast-1.ec2messages"
+    #   service_name        = "com.amazonaws.${var.region}.ec2messages"
     #   private_dns_enabled = true
     #   tags                = { Name = "vpce-llm-ec2messages" }
     # },
     # ssmmessages = {
-    #   service_name        = "com.amazonaws.ap-southeast-1.ssmmessages"
+    #   service_name        = "com.amazonaws.${var.region}.ssmmessages"
     #   private_dns_enabled = true
     #   tags                = { Name = "vpce-llm-ssmmessages" }
     # }

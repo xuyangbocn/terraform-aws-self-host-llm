@@ -46,17 +46,17 @@ module "ollama_and_open_webui" {
         },
     ]
 
-    create_api_gw                = true
-    disable_execute_api_endpoint = true
-    api_gw_domain                = "xx.xxx.com"
-    api_gw_domain_route53_zone   = "xxxxx"
-    api_gw_domain_ssl_cert_arn   = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"
+    create_api_gw                   = true
+    api_gw_disable_execute_endpoint = true
+    api_gw_domain                   = "xx.xxx.com"
+    api_gw_domain_route53_zone      = "xxxxx"
+    api_gw_domain_ssl_cert_arn      = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"
 
     open_webui_task_cpu            = 1024
     open_webui_task_mem            = 2048
     open_webui_task_count          = 2
     open_webui_port                = 8080
-    open_webui_image_url           = "xxxx.dkr.ecr.ap-southeast-1.amazonaws.com/open-webui:v0.3.4"
+    open_webui_image_url           = "xuyangbo/open-webui:v0.3.7"
     open_webui_domain              = "yy.yyyy.com"
     open_webui_domain_route53_zone = "xxxxxx"
     open_webui_domain_ssl_cert_arn = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"
