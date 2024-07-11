@@ -2,4 +2,5 @@
 *.DS_Store
 terraform.tfstate*
 *.auto.tfvars
+!sample.auto.tfvars
 .vscode*

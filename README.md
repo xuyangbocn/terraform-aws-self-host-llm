@@ -1,6 +1,6 @@
-# Terraform to Setup an Ollama + Open WebUI Deployment
+# Terraform to Setup an Ollama + Open WebUI Deployment on AWS
 
-This TF repo setup a ready-to-use **Ollama** service, together with its front end **Open WebUI** service.
+This TF repo deploys on AWS a ready-to-use **Ollama** service, together with its front end **Open WebUI** service. [_(YouTube Demo)_](https://youtu.be/hRJEREemyos)
 
 These two are separate child TF modules, which can be used independently. Please refer to below for more details.
 
@@ -20,8 +20,22 @@ For usage and features of **Ollama** and **Open WebUI**, please refer to the off
 
 ## How to Use
 
+### To deploy directly
+
+```bash
+# 1. Install Terraform
+# 2. Review/Edit sample.auto.tfvars
+# 3. Run below
+terraform init
+terraform apply
+```
+
+### To use as a terraform module
+
 ```terraform
 module "ollama_and_open_webui" {
+    source = "./modules/terraform-aws-self-host-llm"
+
     region                    = "ap-southeast-1"
     azs                       = ["ap-southeast-1a", "ap-southeast-1b"]
     vpc_private_subnets_cidrs = ["172.31.48.0/20", "172.31.64.0/20"]
@@ -56,7 +70,7 @@ module "ollama_and_open_webui" {
     open_webui_task_mem            = 2048
     open_webui_task_count          = 2
     open_webui_port                = 8080
-    open_webui_image_url           = "xuyangbo/open-webui:v0.3.7"
+    open_webui_image_url           = "xuyangbo/open-webui:v0.3.8"
     open_webui_domain              = "yy.yyyy.com"
     open_webui_domain_route53_zone = "xxxxxx"
     open_webui_domain_ssl_cert_arn = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"
