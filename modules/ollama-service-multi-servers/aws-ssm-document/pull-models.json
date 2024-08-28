@@ -20,6 +20,7 @@
         "timeoutSeconds": "{{ TimeoutSeconds }}",
         "runCommand": [
           "#!/bin/bash",
+          "export HOME=/root",
           "sleep 1m",
           "IFS=',' read -ra ms <<< \"{{Models}}\"",
           "for m in \"${ms[@]}\"; do",

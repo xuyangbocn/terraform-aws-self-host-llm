@@ -21,7 +21,7 @@ llm_ec2_configs = [
     app_port      = 11434
   },
   # {
-  #   llm_model     = "llama3:8b"
+  #   llm_model     = "llama3.1:8b"
   #   instance_type = "g5g.xlarge"
   #   ami_id        = ""
   #   ebs_volume_gb = 200
@@ -39,7 +39,7 @@ open_webui_task_cpu   = 512
 open_webui_task_mem   = 1024
 open_webui_task_count = 2
 open_webui_port       = 8080
-open_webui_image_url  = "xuyangbo/open-webui:v0.3.8"
+open_webui_image_url  = "xuyangbo/open-webui:v0.3.15"
 # open_webui_domain              = "yy.yyyy.com"
 # open_webui_domain_route53_zone = "xxxxx"
 # open_webui_domain_ssl_cert_arn = "arn:aws:acm:ap-southeast-1:xxxx:certificate/xxxxx"
