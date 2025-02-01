@@ -114,7 +114,7 @@ resource "aws_ecs_task_definition" "open_webui" {
     },
     {
       "name" : "aws-otel-collector",
-      "image" : "public.ecr.aws/aws-observability/aws-otel-collector:v0.39.1",
+      "image" : "public.ecr.aws/aws-observability/aws-otel-collector:v0.41.2",
       "cpu" : 0,
       "portMappings" : [],
       "essential" : true,
