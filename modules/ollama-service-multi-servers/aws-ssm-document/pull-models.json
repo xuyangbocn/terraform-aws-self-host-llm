@@ -9,7 +9,7 @@
     "TimeoutSeconds": {
       "type": "String",
       "description": "(Optional) The time in seconds for a command to be completed before it is considered to have failed.",
-      "default": "900"
+      "default": "3600"
     }
   },
   "mainSteps": [
@@ -21,11 +21,15 @@
         "runCommand": [
           "#!/bin/bash",
           "export HOME=/root",
-          "sleep 1m",
+          "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do",
+          "  echo \"Wait 10s for cloud-init to finish\"",
+          "  sleep 10",
+          "done",
           "IFS=',' read -ra ms <<< \"{{Models}}\"",
           "for m in \"${ms[@]}\"; do",
           "   echo \"pull model $m \"",
           "   ollama pull $m",
+          "   sleep 10",
           "done"
         ]
       }

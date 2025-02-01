@@ -40,8 +40,8 @@ locals {
 
   ec2_configs = {
     for i, v in var.llm_ec2_configs :
-    replace(v.llm_model, "/[.:]/", "") => {
-      id                          = replace(v.llm_model, "/[.:]/", "")
+    replace(v.llm_model, "/[-_.:]/", "") => {
+      id                          = replace(v.llm_model, "/[-_.:]/", "")
       llm_model                   = v.llm_model
       instance_family             = split(".", v.instance_type)[0]
       instance_type               = v.instance_type

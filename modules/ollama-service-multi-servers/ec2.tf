@@ -124,7 +124,7 @@ resource "aws_ssm_document" "pull_models" {
   content = file("${path.module}/aws-ssm-document/pull-models.json")
 }
 
-resource "aws_ssm_association" "pull_model" {
+resource "aws_ssm_association" "pull_models" {
   for_each = local.ec2_configs
 
   name = aws_ssm_document.pull_models.name
